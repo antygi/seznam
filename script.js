@@ -614,13 +614,57 @@ function updateQR() {
             // Zapečení loga
             ctx.drawImage(logoImg, offset, offset, logoSize, logoSize);
 
-            // ZDE JE TO KOUZLO: Nastavíme spojený obrázek rovnou na obrazovku!
+            // Nastavíme spojený obrázek rovnou na obrazovku
             qrImage.src = canvas.toDataURL("image/png");
         };
     };
 }
 
-// Stažení je teď úplně primitivní, protože qrImage.src už obsahuje správný spojený obrázek
+// KONEČNĚ VRÁCENÁ FUNKCE PRO ZOBRAZENÍ OKNA
+window.showDonateModal = function(isAfterReset = false) {
+    if (isAfterReset) {
+        donateTitle.textContent = "Seznam úspěšně obnoven!";
+        donateSubtitle.textContent = "Dej mi dýško z nákupu 😎";
+    } else {
+        donateTitle.textContent = "Podpořit aplikaci";
+        donateSubtitle.textContent = "Dej mi dýško z nákupu 😎";
+    }
+    
+    inputCustomAmount.value = '';
+    updateQR();
+    modalDonate.classList.remove('hidden');
+};
+
+// Otevírání modálu z tlačítka
+btnSupportFloating.onclick = () => window.showDonateModal(false);
+
+// Zavírání modálu
+document.querySelectorAll('#donate-modal .close-modal').forEach(btn => {
+    btn.onclick = () => modalDonate.classList.add('hidden');
+});
+
+// Přepínání částek
+amountButtons.forEach(btn => {
+    btn.onclick = (e) => {
+        amountButtons.forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        currentDonateAmount = e.target.getAttribute('data-amount');
+        inputCustomAmount.value = '';
+        updateQR();
+    };
+});
+
+// Vlastní částka
+inputCustomAmount.addEventListener('input', (e) => {
+    const val = e.target.value;
+    if (val && !isNaN(val) && val > 0) {
+        amountButtons.forEach(b => b.classList.remove('active'));
+        currentDonateAmount = val;
+        updateQR();
+    }
+});
+
+// Stažení spojeného obrázku
 btnDownloadQr.onclick = () => {
     try {
         const a = document.createElement('a');
