@@ -112,7 +112,6 @@ button {
     touch-action: manipulation; /* Zakáže zpoždění a čekání na dvojklik */
     user-select: none; /* Zabrání tomu, aby telefon místo kliku označil text na tlačítku */
     -webkit-user-select: none; /* Pro iPhony (Safari) */
-    pointer-events: none;
 }
 
 button:active {
@@ -446,4 +445,16 @@ header h2 {
     color: white;
     border-color: var(--primary-color);
     transform: scale(1.05);
+}
+
+/* Číslo verze vlevo dole */
+#app-version {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    color: var(--text-muted);
+    font-size: 0.65rem;
+    z-index: 50; 
+    opacity: 0.7;
+    pointer-events: none; /* Aby to nepřekáželo při klikání */
 }
