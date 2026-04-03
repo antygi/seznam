@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nákupní parťák</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app-container">
+        
+        <section id="home-view" class="view active">
+            <header>
+                <h1>Moje nákupy</h1>
+            </header>
+            <main>
+                <div class="add-list-container">
+                    <input type="text" id="new-list-name" placeholder="Zadejte kód nebo název seznamu">
+                    <button id="btn-add-list" class="btn-primary">Přidat / Otevřít seznam</button>
+                </div>
+                <h2>Uložené seznamy:</h2>
+                <div id="saved-lists" class="lists-container"></div>
+            </main>
+        </section>
+
+        <section id="list-view" class="view hidden">
+            <header>
+                <button id="btn-back-home" class="btn-icon">⬅ Zpět</button>
+                <h2 id="current-list-title">Název seznamu</h2>
+                <button id="btn-reset-list" class="btn-danger">Obnovit</button> 
+                <button id="btn-start-shopping" class="btn-action">Nakupovat</button>
+            </header>
+
+            
+            
+            <main>
+                <div class="add-item-form card">
+                    <input type="text" id="item-name" placeholder="Název zboží" required>
+                    
+                    <select id="item-category">
+                        <option value="1">Ovoce a zelenina</option>
+                        <option value="2">Sypké výrobky</option>
+                        <option value="3">Konzervy</option>
+                        <option value="4">Pečivo</option>
+                        <option value="5">Maso</option>
+                        <option value="6">Mléčné výrobky</option>
+                        <option value="7">Sladkosti</option>
+                        <option value="8">Drogerie</option>
+                    </select>
+
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" id="item-separate-receipt"> Jiná účtenka</label>
+                        <label><input type="checkbox" id="item-only-sale"> Jen v akci</label>
+                    </div>
+                    
+                    <input type="number" id="item-sale-price" class="hidden" placeholder="Cena v akci (Kč)">
+
+                    <button id="btn-add-item" class="btn-primary">Přidat položku</button>
+                </div>
+
+                <div id="items-container" class="items-list"></div>
+            </main>
+        </section>
+
+        <section id="shopping-view" class="view hidden">
+            <header>
+                <button id="btn-end-shopping" class="btn-danger">Ukončit nákup</button>
+                <h2>Nakupování</h2>
+            </header>
+            
+            <main>
+                <div class="shopping-sections">
+                    <div class="shopping-section">
+                        <h3>Zbývá koupit</h3>
+                        <div id="shopping-to-buy" class="items-list"></div>
+                    </div>
+                    <div class="shopping-section status-bought">
+                        <h3>Koupeno</h3>
+                        <div id="shopping-bought" class="items-list"></div>
+                    </div>
+                    <div class="shopping-section status-missing">
+                        <h3>Neměli</h3>
+                        <div id="shopping-out-of-stock" class="items-list"></div>
+                    </div>
+                </div>
+            </main>
+        </section>
+        
+        <div id="edit-modal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content">
+                <button class="close-modal">×</button>
+                <h3>Upravit položku</h3>
+                <input type="hidden" id="edit-item-id">
+                
+                <input type="text" id="edit-item-name" class="full-width" required>
+                
+                <select id="edit-item-category" class="full-width">
+                    <option value="1">Ovoce a zelenina</option>
+                    <option value="2">Sypké výrobky</option>
+                    <option value="3">Konzervy</option>
+                    <option value="4">Pečivo</option>
+                    <option value="5">Maso</option>
+                    <option value="6">Mléčné výrobky</option>
+                    <option value="7">Sladkosti</option>
+                    <option value="8">Drogerie</option>
+                </select>
+                
+                <div class="checkbox-group">
+                    <label><input type="checkbox" id="edit-item-separate-receipt"> Jiná účtenka</label>
+                    <label><input type="checkbox" id="edit-item-only-sale"> Jen v akci</label>
+                </div>
+                
+                <input type="number" id="edit-item-sale-price" class="full-width hidden" placeholder="Cena v akci (Kč)">
+                
+                <button id="btn-save-edit" class="btn-primary full-width">Uložit změny</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
