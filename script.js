@@ -176,13 +176,42 @@ function renderSavedLists() {
     }
     
     lists.forEach(list => {
+        // Vytvoříme řádek pro seznam a tlačítko smazat
+        const row = document.createElement('div');
+        row.style.display = "flex";
+        row.style.gap = "8px";
+        row.style.marginBottom = "8px";
+
+        // Hlavní tlačítko pro otevření
         const btn = document.createElement('button');
         btn.className = 'list-button';
+        btn.style.flexGrow = "1";
+        btn.style.marginBottom = "0"; 
         btn.innerHTML = `<span>📝 ${list}</span> <span>➔</span>`;
         btn.onclick = () => openOrCreateList(list);
-        containerSavedLists.appendChild(btn);
+
+        // Tlačítko pro smazání z telefonu
+        const btnDel = document.createElement('button');
+        btnDel.className = 'btn-danger';
+        btnDel.style.padding = "0 15px";
+        btnDel.innerHTML = '🗑️';
+        btnDel.onclick = () => removeListFromPhone(list);
+
+        row.appendChild(btn);
+        row.appendChild(btnDel);
+        containerSavedLists.appendChild(row);
     });
 }
+
+// Přidáme novou funkci pro smazání seznamu z paměti telefonu
+window.removeListFromPhone = (listId) => {
+    if(confirm(`Opravdu chcete z tohoto telefonu smazat zástupce seznamu "${listId}"?\n\n(Z cloudu se nesmaže, v budoucnu ho můžete znovu otevřít zadáním jeho jména.)`)) {
+        let lists = getSavedLists();
+        lists = lists.filter(l => l !== listId);
+        localStorage.setItem('shoppingLists', JSON.stringify(lists));
+        renderSavedLists(); // Překreslí úvodní obrazovku
+    }
+};
 
 function generateItemHTML(item, mode) {
     let badges = '';
@@ -372,6 +401,48 @@ btnAddItem.onclick = async () => {
     const name = inputItemName.value.trim();
     if (!name) return alert("Zadejte název položky");
 
+    // === VYLEPŠENÁ KONTROLA DUPLIKÁTŮ ===
+    const normalizeString = (str) => {
+        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, '');
+    };
+
+    const normNew = normalizeString(name);
+    
+    // Najdeme konkrétní položku, která vyvolala duplicitu
+    const duplicateItem = currentItems.find(item => {
+        const normExisting = normalizeString(item.name);
+        
+        // 1. Přesná shoda
+        if (normExisting === normNew) return true;
+        
+        // Pojistka pro extrémně krátká slova (např. "sůl", "med"), ty musí sedět přesně
+        if (normExisting.length < 3 || normNew.length < 3) return false;
+
+        // 2. Jeden název obsahuje druhý ("rohlik" v "rohliky", "rajcata" v "rajcataovalna")
+        if (normExisting.includes(normNew) || normNew.includes(normExisting)) return true;
+
+        // 3. Shoda alespoň 4 znaků za sebou (zachytí překlepy nebo lehce jiná slova)
+        for (let i = 0; i <= normNew.length - 4; i++) {
+            const podretez = normNew.substring(i, i + 4);
+            if (normExisting.includes(podretez)) {
+                return true;
+            }
+        }
+        
+        return false;
+    });
+
+    if (duplicateItem) {
+        // Zobrazí přesnou hlášku podle vašeho zadání
+        const proceed = confirm(`V seznamu už pravděpodobně je předmět který jste zadali: ${duplicateItem.name}, opravdu chcete předmět ${name} zadat?`);
+        
+        if (!proceed) {
+            // Uživatel klikl na Zrušit, funkce končí a kolonky zůstanou vyplněné
+            return;
+        }
+    }
+    // === KONEC KONTROLY ===
+
     btnAddItem.disabled = true;
     btnAddItem.textContent = "Přidávám...";
 
@@ -386,7 +457,7 @@ btnAddItem.onclick = async () => {
             createdAt: new Date()
         });
         
-        // Reset formuláře
+        // Reset formuláře po úspěšném přidání
         inputItemName.value = "";
         inputItemReceipt.checked = false;
         inputItemSale.checked = false;
