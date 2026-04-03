@@ -34,8 +34,10 @@ const CATEGORIES = {
     "4": "Pečivo",
     "5": "Maso",
     "6": "Mléčné výrobky",
-    "7": "Sladkosti",
-    "8": "Drogerie"
+    "7": "Dresinky",
+    "8": "Sladkosti",
+    "9": "Drogerie",
+    "10": "Jiné"
 };
 
 // ============================================================================
