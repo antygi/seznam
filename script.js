@@ -637,20 +637,76 @@ inputCustomAmount.addEventListener('input', (e) => {
     }
 });
 
-// Stažení QR kódu
-btnDownloadQr.onclick = async () => {
-    try {
-        const response = await fetch(qrImage.src);
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
+// Stažení QR kódu i s logem uprostřed pomocí plátna (Canvas)
+btnDownloadQr.onclick = () => {
+    const btn = btnDownloadQr;
+    const originalText = btn.textContent;
+    btn.textContent = "Generuji obrázek...";
+    btn.disabled = true;
+
+    // 1. Vytvoříme virtuální plátno
+    const canvas = document.createElement('canvas');
+    const size = 300; // Stejná velikost, jakou jsme zadali API
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    // 2. Načteme čistý QR kód
+    const qrImg = new Image();
+    qrImg.crossOrigin = "Anonymous"; // Povinné, aby nás prohlížeč neblokoval kvůli cizí adrese (CORS)
+    qrImg.src = qrImage.src;
+
+    qrImg.onload = () => {
+        // Vykreslíme QR na plátno
+        ctx.drawImage(qrImg, 0, 0, size, size);
+
+        // 3. Načteme tvůj obrázek (logo)
+        const logoImg = new Image();
+        logoImg.src = 'icon-192.png'; // Zde je tvoje ikona nákupního košíku
+
+        logoImg.onload = () => {
+            // Nastavíme velikost loga na cca 1/5 velikosti QR kódu (aby šel skenovat)
+            const logoSize = 60;
+            const offset = (size - logoSize) / 2; // Výpočet středu
+
+            // Vykreslíme pod logo bílý čtvereček, ať pod ním neprosvítá ten původní střed QR kódu
+            ctx.fillStyle = "white";
+            ctx.fillRect(offset - 6, offset - 6, logoSize + 12, logoSize + 12);
+
+            // Vykreslíme samotné logo
+            ctx.drawImage(logoImg, offset, offset, logoSize, logoSize);
+
+            // 4. Stáhneme tento kompletní spojený obrázek
+            try {
+                const finalImageURL = canvas.toDataURL("image/png");
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = finalImageURL;
+                a.download = `QR_Dysko_${currentDonateAmount}Kc.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            } catch(e) {
+                console.error(e);
+                alert("Prohlížeč zablokoval spojení obrázků. Zkuste podržet prst na QR kódu a dát 'Uložit obrázek'.");
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        };
+
+        logoImg.onerror = () => fallbackDownload();
+    };
+
+    qrImg.onerror = () => fallbackDownload();
+
+    // Záložní plán: kdyby se něco hodně pokazilo, stáhne se alespoň ten původní samotný QR kód
+    function fallbackDownload() {
         const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
+        a.href = qrImage.src;
         a.download = `QR_Dysko_${currentDonateAmount}Kc.png`;
-        document.body.appendChild(a);
         a.click();
-        window.URL.revokeObjectURL(url);
-    } catch (error) {
-        alert("Na tomto zařízení nešlo kód stáhnout. Podržte na obrázku prst a dejte 'Uložit obrázek'.");
+        btn.textContent = originalText;
+        btn.disabled = false;
     }
 };
