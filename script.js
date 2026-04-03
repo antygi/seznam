@@ -78,6 +78,15 @@ const editItemReceipt = document.getElementById('edit-item-separate-receipt');
 const editItemSale = document.getElementById('edit-item-only-sale');
 const editItemSalePrice = document.getElementById('edit-item-sale-price'); // NOVÉ
 
+const btnSupportFloating = document.getElementById('btn-support-floating');
+const modalDonate = document.getElementById('donate-modal');
+const donateTitle = document.getElementById('donate-title');
+const donateSubtitle = document.getElementById('donate-subtitle');
+const qrImage = document.getElementById('qr-image');
+const btnDownloadQr = document.getElementById('btn-download-qr');
+const amountButtons = document.querySelectorAll('.btn-amount');
+const inputCustomAmount = document.getElementById('custom-amount');
+
 // ============================================================================
 // 4. INICIALIZACE A LOCALSTORAGE
 // ============================================================================
@@ -129,7 +138,13 @@ async function openOrCreateList(listId) {
         if (!docSnap.exists()) {
             await setDoc(listRef, {
                 createdAt: new Date(),
+                lastAccessed: new Date(), // Nové: čas vytvoření
                 name: listId
+            });
+        } else {
+            // Nové: Pokud seznam už existuje, posuneme mu čas posledního přístupu na teď
+            await updateDoc(listRef, {
+                lastAccessed: new Date()
             });
         }
         
@@ -205,7 +220,7 @@ function renderSavedLists() {
 
 // Přidáme novou funkci pro smazání seznamu z paměti telefonu
 window.removeListFromPhone = (listId) => {
-    if(confirm(`Opravdu chcete z tohoto telefonu smazat zástupce seznamu "${listId}"?\n\n(Z cloudu se nesmaže, v budoucnu ho můžete znovu otevřít zadáním jeho jména.)`)) {
+    if(confirm(`Opravdu chcete z tohoto telefonu smazatú seznam? "${listId}"?\n\nV databázi zůstane, v budoucnu ho můžete znovu otevřít zadáním jeho jména.)`)) {
         let lists = getSavedLists();
         lists = lists.filter(l => l !== listId);
         localStorage.setItem('shoppingLists', JSON.stringify(lists));
@@ -307,7 +322,7 @@ async function resetList() {
     console.log("Tlačítko Obnovit bylo stisknuto.");
 
     // Upravený text upozornění, aby odpovídal nové logice
-    if (!confirm("Opravdu chcete vyčistit seznam? Smaže se vše 'Koupeno' a také prošlé akce z 'Neměli'. Ostatní běžné věci z 'Neměli' se vrátí do seznamu.")) return;
+    if (!confirm("Opravdu chcete vyčistit seznam? Smaže se vše kromě věcí, které neměli.")) return;
 
     if (!currentListId) {
         console.error("Chybí ID seznamu!");
@@ -343,6 +358,7 @@ async function resetList() {
 
         await Promise.all(promises);
         console.log("Obnova seznamu dokončena.");
+        showDonateModal(true); // Zobrazí modální okno s poděkováním a QR kódem
     } catch (error) {
         console.error("Chyba při resetu seznamu:", error);
         alert("Některé položky se nepodařilo aktualizovat. Podrobnosti v konzoli (F12).");
@@ -355,7 +371,22 @@ async function resetList() {
 // ============================================================================
 // 8. OBSLUHA AKCÍ
 // ============================================================================
-btnAddList.onclick = () => openOrCreateList(inputNewList.value);
+btnAddList.onclick = () => {
+    const listName = inputNewList.value.trim();
+    if (!listName) return alert("Zadejte název seznamu!");
+
+    const formattedId = listName.toLowerCase().replace(/\s+/g, '-');
+    const savedLists = getSavedLists();
+
+    // Zkontrolujeme, jestli se uživatel nesnaží vytvořit 11. seznam
+    // Pokud už ho má ale uložený, pustíme ho dovnitř.
+    if (!savedLists.includes(formattedId) && savedLists.length >= 10) {
+        alert("Ochrana proti spamu: Můžete mít uloženo maximálně 10 seznamů. Promažte prosím staré seznamy (tlačítkem 🗑️).");
+        return;
+    }
+
+    openOrCreateList(listName);
+};
 
 btnBackHome.onclick = () => {
     if (unsubscribeSnapshot) unsubscribeSnapshot();
@@ -400,6 +431,11 @@ editItemSale.addEventListener('change', (e) => {
 btnAddItem.onclick = async () => {
     const name = inputItemName.value.trim();
     if (!name) return alert("Zadejte název položky");
+    // === OCHRANA PROTI SPAMU ===
+    if (currentItems.length >= 100) {
+        alert("Ochrana proti spamu: Tento seznam je plný (maximálně 100 položek). Promažte ho prosím tlačítkem 'Obnovit' nebo smažte některé položky.");
+        return;
+    }
 
     // === VYLEPŠENÁ KONTROLA DUPLIKÁTŮ ===
     const normalizeString = (str) => {
@@ -536,3 +572,85 @@ if ('serviceWorker' in navigator) {
             });
     });
 }
+
+// ============================================================================
+// 10. DÝŠKO A PODPORA AUTORA
+// ============================================================================
+let currentDonateAmount = 20;
+
+function updateQR() {
+    // 🔴 ZDE VLOŽ SVŮJ IBAN! (Ujisti se, že v něm nejsou žádné mezery!) 🔴
+    const iban = "CZ7962106701002214484062"; 
+    
+    // 1. Zpráva nesmí mít skutečné mezery, nahradíme je za %20
+    const message = "Posílám dýško z nákupu".replace(/ /g, '%20');
+    
+    // 2. Částka musí mít vždy dvě desetinná místa (např. 20.00)
+    const finalAmount = Number(currentDonateAmount).toFixed(2);
+    
+    // 3. Sestavení řetězce
+    const spdText = `SPD*1.0*ACC:${iban}*AM:${finalAmount}*CC:CZK*MSG:${message}`;
+    
+    // 4. Vygenerování přes API (musíme to celé ještě zakódovat pro URL)
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(spdText)}&ecc=H&margin=0`;
+    qrImage.src = qrUrl;
+}
+
+window.showDonateModal = (isAfterReset = false) => {
+    if (isAfterReset) {
+        donateTitle.textContent = "Seznam úspěšně obnoven!";
+        donateSubtitle.textContent = "Dej mi dýško z nákupu 😎";
+    } else {
+        donateTitle.textContent = "Podpořit aplikaci";
+        donateSubtitle.textContent = "Dej mi dýško z nákupu 😎";
+    }
+    
+    inputCustomAmount.value = '';
+    updateQR();
+    modalDonate.classList.remove('hidden');
+};
+
+btnSupportFloating.onclick = () => showDonateModal(false);
+
+document.querySelectorAll('#donate-modal .close-modal').forEach(btn => {
+    btn.onclick = () => modalDonate.classList.add('hidden');
+});
+
+// Přepínání částek
+amountButtons.forEach(btn => {
+    btn.onclick = (e) => {
+        amountButtons.forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        currentDonateAmount = e.target.getAttribute('data-amount');
+        inputCustomAmount.value = '';
+        updateQR();
+    };
+});
+
+// Vlastní částka
+inputCustomAmount.addEventListener('input', (e) => {
+    const val = e.target.value;
+    if (val && !isNaN(val) && val > 0) {
+        amountButtons.forEach(b => b.classList.remove('active'));
+        currentDonateAmount = val;
+        updateQR();
+    }
+});
+
+// Stažení QR kódu
+btnDownloadQr.onclick = async () => {
+    try {
+        const response = await fetch(qrImage.src);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `QR_Dysko_${currentDonateAmount}Kc.png`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        alert("Na tomto zařízení nešlo kód stáhnout. Podržte na obrázku prst a dejte 'Uložit obrázek'.");
+    }
+};

@@ -11,6 +11,8 @@
 </head>
 <body>
     <div id="app-container">
+
+        <button id="btn-support-floating" class="btn-support-floating">Podpořit autora</button>
         
         <section id="home-view" class="view active">
             <header>
@@ -30,7 +32,7 @@
             <header>
                 <button id="btn-back-home" class="btn-icon">⬅ Zpět</button>
                 <h2 id="current-list-title">Název seznamu</h2>
-                <button id="btn-reset-list" class="btn-danger">Obnovit</button> 
+                <button id="btn-reset-list" class="btn-danger">Promazat seznam</button> 
                 <button id="btn-start-shopping" class="btn-action">Nakupovat</button>
             </header>
 
@@ -121,6 +123,35 @@
                 <input type="number" id="edit-item-sale-price" class="full-width hidden" placeholder="Cena v akci (Kč)">
                 
                 <button id="btn-save-edit" class="btn-primary full-width">Uložit změny</button>
+            </div>
+        </div>
+
+        <div id="donate-modal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content" style="text-align: center;">
+                <button class="close-modal">×</button>
+                <h3 id="donate-title">Dej mi dýško z nákupu</h3>
+                <p id="donate-subtitle" style="font-size: 0.9rem; margin-bottom: 15px; font-weight: bold; color: var(--primary-color);"></p>
+
+                <div class="amount-grid">
+                    <button class="btn-amount" data-amount="5">5 Kč</button>
+                    <button class="btn-amount" data-amount="10">10 Kč</button>
+                    <button class="btn-amount active" data-amount="20">20 Kč</button>
+                    <button class="btn-amount" data-amount="50">50 Kč</button>
+                    <button class="btn-amount" data-amount="100">100 Kč</button>
+                </div>
+                
+                <input type="number" id="custom-amount" placeholder="Nebo zadej vlastní částku" class="full-width" style="margin-top: 10px;">
+
+                <div id="qr-wrapper" style="position: relative; display: inline-block; background: white; padding: 12px; border-radius: 15px; margin-top: 15px; border: 1px solid #eee;">
+                    <img id="qr-image" src="" alt="QR Platba" style="display: block; width: 220px; height: 220px;">
+                    
+                    <div id="qr-logo-overlay" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 45px; height: 45px; background: white; padding: 4px; border-radius: 10px; display: flex; justify-content: center; align-items: center;">
+                        <img src="icon-192.png" style="width: 100%; height: 100%; border-radius: 5px;">
+                    </div>
+                </div>
+
+                <button id="btn-download-qr" class="btn-action full-width" style="margin-top: 15px; border: 1px solid var(--primary-color);">⬇ Stáhnout QR kód</button>
             </div>
         </div>
 
