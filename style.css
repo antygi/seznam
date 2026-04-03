@@ -109,6 +109,10 @@ button {
     font-weight: 600;
     cursor: pointer;
     transition: background-color 0.2s, transform 0.1s;
+    touch-action: manipulation; /* Zakáže zpoždění a čekání na dvojklik */
+    user-select: none; /* Zabrání tomu, aby telefon místo kliku označil text na tlačítku */
+    -webkit-user-select: none; /* Pro iPhony (Safari) */
+    pointer-events: none;
 }
 
 button:active {
