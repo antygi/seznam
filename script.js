@@ -29,15 +29,17 @@ let unsubscribeSnapshot = null;
 
 const CATEGORIES = {
     "1": "Ovoce a zelenina",
-    "2": "Sypké výrobky",
+    "2": "Sypké výrobky + Těstoviny",
     "3": "Konzervy",
-    "4": "Pečivo",
-    "5": "Maso",
-    "6": "Mléčné výrobky",
-    "7": "Dresinky",
-    "8": "Sladkosti",
-    "9": "Drogerie",
-    "10": "Jiné"
+    "4": "Pití",
+    "5": "Pečivo",
+    "6": "Maso",
+    "7": "Instantní jídla",
+    "8": "Mléčné výrobky",
+    "9": "Dresinky",
+    "10": "Sladkosti",
+    "11": "Drogerie",
+    "12": "Jiné"
 };
 
 // ============================================================================
