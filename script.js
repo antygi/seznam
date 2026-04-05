@@ -27,19 +27,39 @@ let isShoppingMode = false;
 let currentItems = [];
 let unsubscribeSnapshot = null;
 
+// Univerzální slovník: Zvládne přeložit stará čísla z Firebase i nové texty
 const CATEGORIES = {
-    "1": "Ovoce a zelenina",
-    "2": "Sypké výrobky + Těstoviny",
-    "3": "Konzervy",
-    "4": "Pití",
-    "5": "Pečivo",
-    "6": "Maso",
-    "7": "Instantní jídla",
-    "8": "Mléčné výrobky",
-    "9": "Dresinky",
-    "10": "Sladkosti",
-    "11": "Drogerie",
-    "12": "Jiné"
+    "1": "Ovoce a zelenina", "ovoce-zelenina": "Ovoce a zelenina",
+    "2": "Sypké výrobky + Těstoviny", "sypke-testoviny": "Sypké výrobky + Těstoviny",
+    "3": "Konzervy", "konzervy": "Konzervy",
+    "4": "Pití", "piti": "Pití",
+    "5": "Pečivo", "pecivo": "Pečivo",
+    "6": "Uzeniny", "uzeniny": "Uzeniny",
+    "7": "Maso", "maso": "Maso",
+    "8": "Instantní jídla", "instantni-jidla": "Instantní jídla",
+    "9": "Mléčné výrobky", "mlecne-vyrobky": "Mléčné výrobky",
+    "10": "Dresinky", "dresinky": "Dresinky",
+    "11": "Sladkosti", "sladkosti": "Sladkosti",
+    "12": "Drogerie", "drogerie": "Drogerie",
+    "13": "Jiné", "jine": "Jiné"
+};
+
+// Pevné pořadí, v jakém se budou kategorie vypisovat (zabrání abecednímu zmatku)
+// Pořadí přesně podle tvého původního číslování
+const CATEGORY_ORDER = {
+    "1": 1,  "ovoce-zelenina": 1,
+    "2": 2,  "sypke-testoviny": 2,
+    "3": 3,  "konzervy": 3,
+    "4": 4,  "piti": 4,
+    "5": 5,  "pecivo": 5,
+    "6": 6,  "uzeniny": 6,
+    "7": 7,  "maso": 7,
+    "8": 8,  "instantni-jidla": 8,
+    "9": 9,  "mlecne-vyrobky": 9,
+    "10": 10, "dresinky": 10,
+    "11": 11, "sladkosti": 11,
+    "12": 12, "drogerie": 12,
+    "13": 13, "jine": 13
 };
 
 // ============================================================================
@@ -88,6 +108,10 @@ const qrImage = document.getElementById('qr-image');
 const btnDownloadQr = document.getElementById('btn-download-qr');
 const amountButtons = document.querySelectorAll('.btn-amount');
 const inputCustomAmount = document.getElementById('custom-amount');
+
+const pwaInstallOverlay = document.getElementById('pwa-install-overlay');
+const btnInstallPwa = document.getElementById('btn-install-pwa');
+const btnSkipInstall = document.getElementById('btn-skip-install'); // Přidáno pro možnost přeskočení
 
 // ============================================================================
 // 4. INICIALIZACE A LOCALSTORAGE
@@ -167,12 +191,20 @@ function loadListItems() {
     if (unsubscribeSnapshot) unsubscribeSnapshot();
     
     const itemsRef = collection(db, `lists/${currentListId}/items`);
-    const q = query(itemsRef, orderBy("category", "asc"));
+    // Odebráno orderBy("category", "asc") - seřadíme si to lokálně
+    const q = query(itemsRef); 
     
     unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
         currentItems = [];
         snapshot.forEach((doc) => {
             currentItems.push({ id: doc.id, ...doc.data() });
+        });
+        
+        // Naše vlastní chytré řazení
+        currentItems.sort((a, b) => {
+            const orderA = CATEGORY_ORDER[a.category] || 99; // Pokud chybí, hodí na konec
+            const orderB = CATEGORY_ORDER[b.category] || 99;
+            return orderA - orderB;
         });
         
         if (isShoppingMode) renderShoppingMode();
@@ -680,3 +712,98 @@ btnDownloadQr.onclick = () => {
         alert("Na tomto zařízení nešlo kód stáhnout. Podržte na obrázku prst a dejte 'Uložit obrázek'.");
     }
 };
+
+
+// ============================================================================
+// 11. INSTALACE APLIKACE (PWA) - INSTALL WALL
+// ============================================================================
+let deferredPrompt;
+
+// Pomocné funkce pro detekci prostředí
+const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+// 1. Zobrazit překrytí na iOS (pokud není nainstalováno)
+if (isIos() && !isStandalone()) {
+    pwaInstallOverlay.classList.remove('hidden');
+    // Na iOS změníme text tlačítka, protože iOS neumí deferredPrompt
+    btnInstallPwa.innerText = "Zobrazit návod k instalaci";
+    if (btnSkipInstall) btnSkipInstall.style.display = 'inline-block'; // Zobrazit skip, pokud existuje
+}
+
+// 2. Zobrazit překrytí na Androidu / PC (když prohlížeč řekne, že je apka připravena)
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault(); // Zabrání automatickému vyhazování nativního okna
+    deferredPrompt = e; // Uložíme událost pro pozdější použití
+    pwaInstallOverlay.classList.remove('hidden'); // Ukážeme celé překrytí
+    if (btnSkipInstall) btnSkipInstall.style.display = 'inline-block'; // Zobrazit skip, pokud existuje
+});
+
+// 3. Logika pro instalační tlačítko
+btnInstallPwa.addEventListener('click', async () => {
+    if (deferredPrompt) {
+        // ANDROID / CHROME: Vyvoláme nativní instalační okno
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            console.log('Uživatel aplikaci nainstaloval.');
+        }
+        deferredPrompt = null;
+        pwaInstallOverlay.classList.add('hidden'); // Skryjeme překrytí
+    } else if (isIos()) {
+        // iOS: Apple neumožňuje automatické okno, musíme ukázat návod
+        alert("Pro instalaci na iPhone:\n\n1. Klikněte na ikonu sdílení (čtvereček se šipkou) dole v prohlížeči.\n2. Vyberte možnost 'Přidat na plochu'.");
+    }
+});
+
+// 4. Logika pro tlačítko "Pokračovat ve webové verzi" (Skip)
+if (btnSkipInstall) {
+    btnSkipInstall.addEventListener('click', () => {
+        pwaInstallOverlay.classList.add('hidden'); // Jednoduše schováme překrytí
+        // Volitelně: Můžeš si uložit do localStorage, že uživatel skipnul, a už mu to nezobrazovat (agresivní vs. otravné)
+        // localStorage.setItem('pwa_install_skipped', 'true');
+    });
+}
+
+// 5. Skrytí překrytí ihned po úspěšné instalaci (Android)
+window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    pwaInstallOverlay.classList.add('hidden');
+});
+
+// ============================================================================
+// 12. VIZUÁLNÍ ODEZVA TLAČÍTEK NA MOBILU
+// ============================================================================
+
+// Když uživatel položí prst na obrazovku
+document.addEventListener('touchstart', (e) => {
+    // Zjistíme, jestli se dotkl tlačítka (nebo ikonky uvnitř tlačítka)
+    const btn = e.target.closest('button');
+    if (btn) {
+        btn.classList.add('is-pressed');
+        
+        // Volitelně: Přidáme i haptickou odezvu (zavrnění), pokud to telefon umí
+        if (navigator.vibrate) {
+            navigator.vibrate(10); // Velmi jemné a krátké vrnění (10 ms)
+        }
+    }
+}, { passive: true });
+
+// Když uživatel prst zvedne nebo jím sjede mimo tlačítko
+document.addEventListener('touchend', (e) => {
+    const btn = e.target.closest('button');
+    if (btn) {
+        // Malé zpoždění (100ms), aby efekt prokliku stihlo zachytit i lidské oko
+        setTimeout(() => {
+            btn.classList.remove('is-pressed');
+        }, 100);
+    }
+}, { passive: true });
+
+// Záchrana: Pokud uživatel táhne prstem mimo tlačítko (zrušení kliknutí)
+document.addEventListener('touchcancel', (e) => {
+    const btn = e.target.closest('button');
+    if (btn) {
+        btn.classList.remove('is-pressed');
+    }
+}, { passive: true });

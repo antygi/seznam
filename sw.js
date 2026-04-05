@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nakupy-cache-v10';
+const CACHE_NAME = 'nakupy-cache-v11';
 const urlsToCache = [
   './',
   './index.html',
